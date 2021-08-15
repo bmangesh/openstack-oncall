@@ -1,0 +1,235 @@
+* Openstack CheatSheet                                   :Cloud:
+:PROPERTIES:
+:type:     OpenStack
+:END:
+
+#+BEGIN_HTML
+
+<div id="the whole thing" style="overflow: hidden;">
+
+</div>
+
+<br/><br/>
+<a href="https://github.com/bmangesh/openstack-oncall" target="_blank" rel="nofollow"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"/></a>
+#+END_HTML
+
+** Main Components of OpenStack
+| Service                                      |Code name                                | Description                        | Core Tech      |
+|----------------------------------------------+-----------------------------------------+------------------------------------+----------------|
+|  Identity Service                            |   Keystone                              |  User Management                   ||
+|  Compute Service                             |   Nova                                  |  Virtual Machine Management        |KVM, Qemu,Libvirtd|
+|  Image Service                               |   Glance                                |  Manages kernel image or disk image||   
+|  Dashboard                                   |   Horizon                               |  UI Dashboard for OpenStack Management        ||
+|  Object Storage                              |   Swift                                 |  Provides Cloud Object Storage(s3)            ||
+|  Block Storage                               |   Cinder                                |   Block Storage                          |LVM,CEPH|
+|  Network Service                             |   Neutron                               |   Networking service               |OpenVswitch,Linux Bridge|
+|  Load Balancing                              |   Octavia                               |   LB service                       |HAPROXY|
+|  Key Manager Service                         |   Barbican                              |   Key service                      ||
+
+** Common Commands
+| Name                                 | Command                                                                                   |
+|--------------------------------------+-------------------------------------------------------------------------------------------|
+| Official Cheatsheet                  | [[https://docs.openstack.org/ocata/user-guide/cli-cheat-sheet.html][ OpenStack cli-cheat-sheet]] 
+| Issue keystone Token                 | =openstack token issue -f value -c id=  |
+| identity provider list.              | =openstack identity provider list=        |
+| Cinder Service list                  | =cinder service-list=                 |
+| Compute service list                 | =openstack compute service list=                               |
+| Neutron agent list                   | =openstack network agent list=                   |
+| Hypervisor list                      | =openstack hypervisor list=                                   |
+| Aggregate list          | =openstack aggregate list=                                           |
+| Availability zone List            | =openstack availability zone list=                         |
+| Project list            | =openstack project list=                                                                 |
+| Project Quota                      | =openstack quota show $TENANT_NAME=                                                        |
+| Enable Compute service on specific Hypervisor                     | =openstack compute service set --enable $COMPUTE_NAME nova-compute=                                                    |
+| Show n/w details                  | =openstack network show $NETWORK_NAME=                                                |
+| Show subnet details               | =openstack subnet show $SUBNET_NAME=                                                         |
+| Set quota on router       | =openstack quota set --routers 3 $ROUTER_ID=                                               |
+| Set quota on subnet      | =openstack quota set --subnets 25 $SUBNET_ID=                                   |
+| rbac list   | =neutron rbac-list=                                |
+| list openstack services           | =openstack service list=                                             |
+| cinder list        | =cinder list --all|grep kube|grep avail|awk '{print $2}'|xargs -L1 cinder delete=                                    |
+|  Show LB quota                 | =openstack loadbalancer quota show id=                                  |
+|  List user                    | =openstack user list=                                             |
+|    List ERROR instances                        | =openstack server list --all-projects  --status ERROR -c ID=                                                  |
+|  list all tenant volumes          | =cinder list --all-tenants=                                                  |
+|  list all volumes of specific tenant       | =cinder --os-tenant-name $TENANT_NAME list=                                                             |
+| Increase Instance Quota for a project      | =openstack quota set  --instances 50 $TENANT_NAME=                                                     |
+| Check all Instance on a specific Hypervisor   | =openstack server list --all-projects --host $COMPUTE_NAME=                       |
+| List IP availability for project   | =openstack ip availability list --project $TENANT_NAME=                      |
+| Launch a Instance on specific Hypervisor | =nova boot --flavor 10 --image $IMAGE_NAME --nic net-id=$NETWORK_NAME  --availability-zone nova:COMPUTE_NAME  $INSTANCE_NAME=                                                                   |
+|           |                                              |
+| List Instance by Project      | =openstack server list --all-projects --project $TENANT_NAME=                    |
+|                  |  |
+| Find  Instance Project      | =openstack server list --all-projects  | grep -i $INSTANCE_NAME=                    |
+| Console Logs    | =openstack console log show  $INSTANCE_ID=                    |
+|                  |  |
+|  Create Floating IP           | =openstack floating ip create --project $TENANT_NAME --subnet $SUBNET_NAME $NETWORK_NAME=                                                                        |
+|   Show network IP availability details | =openstack ip availability show $NETWORK_NAME=                                                                         |
+| List IP availability for networks| =openstack ip availability list= |
+| Resource check | =openstack resource provider list= |
+| REsource detaild view | =openstack resource provider show --allocations $COMPUTE_ID -f json= |
+                     |
+                     
+                     
+
+** Check Service Status 
+| Name                                         | Command                                              |
+|----------------------------------------------+------------------------------------------------------|
+|                  |     =systemctl status ovs-vswitchd=                               |
+|                       |                                    |
+|           |                 |
+|  | |
+
+
+** Nova
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| List all VM.                  | =openstack server list=                                                                        |
+| List all VM for all projects  | =openstack server list --all-projects=                                                        |
+| Show VM details               | =openstack server show $INSTANCE_ID=                                                      |
+| Create VM from CLI     | =openstack server create --flavor 10  --image $IMAGE_ID --key-name $INSTANCE_ID --security-group $SECGRP_ID  --nic net-id=$NETWORK_ID $INSTANCE_ID=
+                                                |
+| Get Instance info                 | =openstack server show $INSTANCE_ID=                                                   |
+|    | ==                                                          |
+
+** Octavia LoadBalancer
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+|Octavia glossary | [[https://docs.openstack.org/octavia/latest/reference/glossary.html][OpenStack official glossary]]|
+| List all LB.                  | =openstack loadbalancer list=                                                                        |
+| View LB details  | =openstack loadbalancer show lb_uuid=                                                        |
+| Create LB              | =openstack loadbalancer create --name $LB_NAME --vip-subnet-id $SUBNET_ID=                                                      |
+| Create lb listener     | =openstack loadbalancer listener create --name $LISTENER_NAME --protocol TCP --protocol-port 80 $LB_NAME= |
+| Show lb listeners details             | =openstack loadbalancer listener show $LB_ID=                                                   |
+|  update lb parameters   | =openstack loadbalancer listener set --timeout-client-data 60000 --timeout-member-data 60000 $LISTENER_ID=                                                          |
+|  create lb pool   | =openstack loadbalancer pool create --name $POOL_ID --lb-algorithm ROUND_ROBIN --listener $LISTENER_NAME --protocol TCP=                                                          |
+|  Add member to lb    | =openstack loadbalancer member create --subnet-id $SUBNET_ID  --address 192.168.0.151  --protocol-port 80  $LB_ID=                                                          |
+| List Amphora node of LoadBalancer | =openstack loadbalancer amphora list --loadbalancer $LB_ID=   |
+| List Octavia provider | =openstack loadbalancer provider list= |
+| Find Octavia VM,(only in Service cloud) | =openstack server list --name .*octavia.*= |
+| Find out Error'd Amphora nodes| =openstack loadbalancer amphora list | grep -v  ALLOCATE= |  
+| List LB pool | =openstack loadbalancer pool  list= |
+| List members in pool | =openstack loadbalancer member list POOL_ID= |
+| LB failover          | =openstack loadbalancer failover $LB_ID= |
+| Get member Details.  | =openstack loadbalancer member show $POOL_ID $MEMBER_ID= |
+| Check all Amphorae on services project | =openstack server list --all-projects --project services -c "Availability Zone" -c ID -c Name -c Host -c "Power State"  --long= |
+| Octavia Cookbook | [[https://docs.openstack.org/octavia/queens/user/guides/basic-cookbook.html][OpenStack official LB Cookbook]] |
+ 
+
+
+** Security Group
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| List all Security Group                  | =openstack security group list=                                                                        |
+| Create security group e.g ssh  | =openstack security group create ssh=                                                        |
+| Add a rule to allow ssh and icmp in the ssh security group              | =openstack security group rule create --ingress --protocol tcp --dst-port 22 ssh=                                                      |
+| Add a rule to allow ssh and icmp in the ssh security group    | =openstack security group rule create --ingress --protocol tcp --protocol icmp ssh=
+                                                |
+                                                          |
+                                                          
+** Cirros Tips and Tricks
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| Run Lighweight webserver                  | =while true; do (echo -e 'HTTP/1.1 200 OK\r\n'; echo -e "\n\tMy website has date function" ; echo -e "\t$(date)\n") | nc -lp 8080; done=                                                                        |
+
+                                                          |   
+** Glance 
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| Create a glance image webimage using a file centos.qcow2 available inside /tmp                  | =openstack image create --disk-format qcow2 --file /tmp/cinder.qcow2 webimage=                                                                        |
+| Download Image from Glance  | =glance image-download --file CENTOS-8 --progress $IMAGE_ID=                                                        |
+| Show Image details              | =openstack image show $IMAGE_ID=                                                      |
+| Import/Export of VM Snapshots |  [[https://docs.openstack.org/project-deploy-guide/tripleo-docs/latest/post_deployment/vm_snapshot.html][OpenStack official import/export Doc]]
+                                                |
+                                                          |  
+                                                          
+** Neutron
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| List all Security Group                  | =openstack security group list=                                                                        |
+| Create security group e.g ssh  | =openstack security group create ssh=                                                        |
+| Add a rule to allow ssh and icmp in the ssh security group              | =openstack security group rule create --ingress --protocol tcp --dst-port 22 ssh=                                                      |
+| Add a rule to allow ssh and icmp in the ssh security group    | =openstack security group rule create --ingress --protocol tcp --protocol icmp ssh=
+                                                |
+                                                          |  
+** Cinder
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| List all volumes                  | =openstack volume list  --all-project=                                                                        |
+| List all snapshot  | =openstack volume snapshot  list  --all-project=                                                        |
+| Show snapshot details              | =openstack volume snapshot  show $VOLUME_ID=                                                      |
+| reset volume state   | =cinder snapshot-reset-state $VOLUME_ID=                                             |
+| delete volume snapshot    | =openstack volume snapshot delete $VOLUME_ID=                                      |
+| Find out snapshot of a volume    | =openstack volume snapshot list --volume $VOLUME_ID --all-project=    |
+| Force delete cinder volume   | =cinder force-delete $VOLUME_ID=                                      |
+| Troubleshooting cinder    | [[https://ask.openstack.org/en/question/66918/how-to-delete-volume-with-available-status-and-attached-to/][Troubleshooting Doc]]                     |
+                                               
+                                                                                                           
+* Systemd
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| Listing Running Services Under SystemD                  | =systemctl --type=service=                                                                        |
+| List all active Services  | =systemctl --type=service --state=active=                                                        |
+| Displaying a Unit File             | =systemctl cat nginx OR  systemctl edit --full nginx.service=                                                      |
+| Check unit files   | =systemctl list-unit-files=                                             |
+| Editing Unit Files    | =systemctl edit nginx.service=                                      |
+| systemd file location   | =/etc/systemd/system/=    |
+| Reload systemd process   | =systemctl daemon-reload=                                      |
+|Shows services that failed to run| =systemctl --failed= |
+| Systemd cheatsheet    | [[https://access.redhat.com/sites/default/files/attachments/12052018_systemd_6.pdf][Official CheatSheet]]                     |
+
+* journalctl
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| Show all journal entries:                  | =journalctl=                                                                        |
+| See boot-related messages from the current boot:  | =journalctl -b=                                                        |
+| To see the boots that systemd journal knows about             | =journalctl --list-boots=                                                      |
+| Display all messages generated by process ID   | =journalctl _PID=1115=                                             |
+| Display all messages generated by current user ID (id -u):    | =journalctl _UID=$(id -u)=                                      |
+| Display all of the entries that involve the executable in question:   | =journalctl /bin/bash=    |
+| Displays all messages between two dates:   | =journalctl --since "2020-07-05 21:30:01" --until "2020-07-05 21:30:02"=                                      |
+| Printing the last 50 messages logged within the last hour:| =journalctl -n50 --since "1 hour ago"= |
+| json-pretty output| =journalctl -u telegraf  -f  -o json-pretty= |
+| parse json output| =journalctl -u telegraf  -f  -o json-pretty PIPE jq .MESSAGE= |
+| Filter logs based on priority| =journalctl -p 2= | 
+| Filter kernel messages | =journalctl -k= |
+| View logs using journalctl in verbose mode | =journalctl -o verbose= |
+| journalctl cheatsheet    | [[https://access.redhat.com/sites/default/files/attachments/12052018_systemd_6.pdf][Official CheatSheet]]                     |
+                       
+
+* Tcpdump 
+| Name                                           | Command                                                                                   |
+|------------------------------------------------+-------------------------------------------------------------------------------------------|
+| Capture All incoming HTTP POST requests        | tcpdump -i eth0 -s 0 -A 'tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354'                   |
+| Capture All incoming  HTTP GET requests        | tcpdump -i eth0 -s 0 -A 'tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420'                   |
+| Capturing packets with human readable timestamp | tcpdump -c 8 -tttt -i enp0s3 |
+| Capturing and saving packets to a file         | tcpdump -w enp0s3-26082018.pcap -i enp0s3 |
+| Capturing and Saving the packets whose size greater than N bytes.  | tcpdump -w enp0s3-26082018-2.pcap greater 1024 |
+| Capturing and Saving the packets whose size less than N bytes      | tcpdump -w enp0s3-26082018-3.pcap less 1024 |
+| Reading packets from the saved file             | tcpdump -r enp0s3-26082018.pcap |
+
+                                                          
+* Virsh commands
+| Name                                           | Command                                                                                   |
+|------------------------------------------------+-------------------------------------------------------------------------------------------|
+| List active guests | =virsh list= |
+| List all Guests.   | =virsh list --all= |
+| Edit Guest         | =virsh edit GUEST_ID= |
+| check GUEST xml data | =virsh dumpxml GUEST_ID= |
+| Get the CPU Pinning Settings for a Guest | =virsh vcpupin GUEST_ID= |
+| Discover CPU Scheduling Parameters | =virsh schedinfo GUEST_ID= |
+| More Info | [[ https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-managing_guests_with_virsh][ RedHat Docs ]] And [[ https://libvirt.org/sources/virshcmdref/Virsh_Command_Reference-0.8.7-1.pdf][ Virsh_Command_Reference ]]   |
+
+* Monitoring and LoadTesting
+| Name                                           | Command                                                                                   |
+|------------------------------------------------+-------------------------------------------------------------------------------------------|
+| To create 100M size, enter | =fallocate -l 100M file.out= |
+
+* Trace Linux System Calls
+| Name                                           | Command                                                                                   |
+|------------------------------------------------+-------------------------------------------------------------------------------------------|
+| To see which commands made the most system calls | =perf top -F 49 -e raw_syscalls:sys_enter --sort comm,dso --show-nr-samples= |
+| To see latencies longer than a specific duration | =perf trace --duration 200= |
+| system calls within a period of time | =perf trace -p $PID -s= |
+| trace-cmd | [[https://opensource.com/article/21/7/linux-kernel-trace-cmd?utm_campaign=intrel][ More Info on https://opensource.com/]]  
+
