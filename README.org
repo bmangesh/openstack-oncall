@@ -218,7 +218,8 @@
 | check GUEST xml data | =virsh dumpxml GUEST_ID= |
 | Get the CPU Pinning Settings for a Guest | =virsh vcpupin GUEST_ID= |
 | Discover CPU Scheduling Parameters | =virsh schedinfo GUEST_ID= |
-| More Info | [[ https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-managing_guests_with_virsh][ RedHat Docs ]] And [[ https://libvirt.org/sources/virshcmdref/Virsh_Command_Reference-0.8.7-1.pdf][ Virsh_Command_Reference ]]   |
+| More Info | [[https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-managing_guests_with_virsh][ RedHat Docs ]] And [[https://libvirt.org/sources/virshcmdref/Virsh_Command_Reference-0.8.7-1.pdf][ Virsh_Command_Reference ]]   |
+
 
 * Monitoring and LoadTesting
 | Name                                           | Command                                                                                   |
@@ -231,5 +232,5 @@
 | To see which commands made the most system calls | =perf top -F 49 -e raw_syscalls:sys_enter --sort comm,dso --show-nr-samples= |
 | To see latencies longer than a specific duration | =perf trace --duration 200= |
 | system calls within a period of time | =perf trace -p $PID -s= |
-| trace-cmd | [[https://opensource.com/article/21/7/linux-kernel-trace-cmd?utm_campaign=intrel][ More Info on https://opensource.com/]]  
+| trace-cmd | [[https://opensource.com/article/21/7/linux-kernel-trace-cmd?utm_campaign=intrel][ More Info on https://opensource.com/]]  |
 
