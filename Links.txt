@@ -1,0 +1,5 @@
+MetaData        : https://docs.openstack.org/nova/latest/user/metadata.html
+
+Ceph Internals  : https://www.sparkmycloud.com/blog/ceph-internals-and-integration-with-openstack/
+
+Ceph with KVM   : https://nbailey.ca/post/cephfs-kvm-virtual-san/ 
