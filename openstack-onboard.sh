@@ -24,7 +24,7 @@
  openstack security group rule create --proto icmp default
  openstack security group rule create --proto tcp --dst-port 22 default
  
- openstack server create --flavor 1C1R4D --image CirrOS --nic net-id= database-workload-subnet --security-group default cloud-native-instance
+ openstack server create --flavor 1C1R4D --image CirrOS --nic net-id=database-workload-subnet --security-group default cloud-native-instance
   
   openstack volume create --size 1 cloud-native-volume --type tier1
   openstack volume create --size 1 webapp-volume --type tier2
