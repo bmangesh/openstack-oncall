@@ -54,6 +54,8 @@ ceph tell mon.* version
 ceph tell osd.* version
 
 
+=========================================================
+ ceph version 10.2.11 = Jewel is the 10th stable release of Ceph
 
 #updates
 Update one mon at the time
