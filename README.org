@@ -13,23 +13,36 @@
 <a href="https://github.com/bmangesh/openstack-oncall" target="_blank" rel="nofollow"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"/></a>
 #+END_HTML
 
+
 ** Main Components of OpenStack
-| Service                                      |Code name                                | Description                        | Core Tech      |
-|----------------------------------------------+-----------------------------------------+------------------------------------+----------------|
-|  Identity Service                            |   Keystone                              |  User Management                   ||
-|  Compute Service                             |   Nova                                  |  Virtual Machine Management        |KVM, Qemu,Libvirtd|
-|  Image Service                               |   Glance                                |  Manages kernel image or disk image||   
-|  Dashboard                                   |   Horizon                               |  UI Dashboard for OpenStack Management        ||
-|  Object Storage                              |   Swift                                 |  Provides Cloud Object Storage(s3)            ||
-|  Block Storage                               |   Cinder                                |   Block Storage                          |LVM,CEPH|
-|  Network Service                             |   Neutron                               |   Networking service               |OpenVswitch,Linux Bridge|
-|  Load Balancing                              |   Octavia                               |   LB service                       |HAPROXY|
-|  Key Manager Service                         |   Barbican                              |   Key service                      ||
+| Service                                      |Code name                                | Description                        | Core Tech      |Port|
+|----------------------------------------------+-----------------------------------------+------------------------------------+----------------+------|
+|  Identity Service                            |   Keystone                              |  User Management                   |authentication and authorization|35357(adminurl) & 5000(publicurl)|
+|  Compute Service                             |   Nova                                  |  Virtual Machine Management        |KVM, Qemu,Libvirtd||
+|  Image Service                               |   Glance                                |  Manages kernel image or disk image|| 9191 & 9292|  
+|  Dashboard                                   |   Horizon                               |  UI Dashboard for OpenStack Management        |||
+|  Object Storage                              |   Swift                                 |  Provides Cloud Object Storage(s3)            ||6000,6001,6002|
+|  Block Storage                               |   Cinder                                |   Block Storage                          |LVM,CEPH||
+|  Network Service                             |   Neutron                               |   Networking service               |OpenVswitch,Linux Bridge|9696|
+|  Load Balancing                              |   Octavia                               |   LB service                       |HAPROXY,keepalived,VRRP||
+|  Key Manager Service                         |   Barbican                              |   Key service                      |||
+
+** Main concepts in openstack networking
+| Service                                      |Code name                           |
+|----------------------------------------------+-----------------------------------------|
+|  TAP device                            |   A tap device is a software-only interface, that a userspace program can attach to itself and send/receive packets to it. TAP devices are they way that KVM/QEMU implement virtual NIC (vNIC) attached to the VMs , A TUN/TAP device is a virtual device where one end is a kernel network interface, and the other end is a user space file descriptor.                           |
+| veth pair | veth pair is a pair of virtual NIC cards connected via a virtual cable. If a packet is sent on one of them, it will come out of the other one and vise versa. veth are usually used to connect two entities. |
+|Linux bridge| Linux bridge is a virtual switch implemented in Linux |
+|Openvswitch| openvswitch is a more complicated vritual switch implemented in Linux. It allows openflow rules to be applied to traffic at layer 2 such that decisions are made on MAC addresses, VLAN ID of the traffic flow. Openvswitch provides native support for VXLAN tunnels |
+| Network namespaces| An isolated network stack in Linux, where you can have isolated interfaces, routing tables and iptables rules. Network name spaces do not “see” each other’s traffic. This is vital for openstack since you let your users create their own VM networks and you need this level of isolation at layer |
+|Patch interfaces in openvswitch| a special kind of interface that is used to connect two openvswitch switches e.g patch-tun --> patch-int|
+|neutron-where-did-my-packets-go||
 
 ** Common Commands
 | Name                                 | Command                                                                                   |
 |--------------------------------------+-------------------------------------------------------------------------------------------|
-| Official Cheatsheet                  | [[https://docs.openstack.org/ocata/user-guide/cli-cheat-sheet.html][ OpenStack cli-cheat-sheet]] 
+| Official Cheatsheet                  | [[https://docs.openstack.org/ocata/user-guide/cli-cheat-sheet.html][ OpenStack cli-cheat-sheet]] |
+| OpenStack Glossary                   | [[https://docs.openstack.org/install-guide/common/glossary.html][ OpenStack Glossary ]] |
 | Issue keystone Token                 | =openstack token issue -f value -c id=  |
 | identity provider list.              | =openstack identity provider list=        |
 | Cinder Service list                  | =cinder service-list=                 |
@@ -62,25 +75,103 @@
 |                  |  |
 | Find  Instance Project      | =openstack server list --all-projects  | grep -i $INSTANCE_NAME=                    |
 | Console Logs    | =openstack console log show  $INSTANCE_ID=                    |
-|                  |  |
 |  Create Floating IP           | =openstack floating ip create --project $TENANT_NAME --subnet $SUBNET_NAME $NETWORK_NAME=                                                                        |
 |   Show network IP availability details | =openstack ip availability show $NETWORK_NAME=                                                                         |
 | List IP availability for networks| =openstack ip availability list= |
+| List L3 agent | =openstack network agent list --agent-type l3= | 
+| List openVswitch Agent | =openstack network agent list --agent-type open-vswitch=  |
 | Resource check | =openstack resource provider list= |
-| REsource detaild view | =openstack resource provider show --allocations $COMPUTE_ID -f json= |
-                     |
+| List OpenStack server by IP | =openstack server list --ip 192.168.0.10 OR openstack server list --all-projects  --ip 192.168.0.10= |
+| Resource detaild view | =openstack resource provider show --allocations $COMPUTE_ID -f json= |
+| Detach a volume from an instance | =openstack server remove volume $INSTANCE_ID $VOLUME_ID= |
+| Check role assignment | =openstack role assignment list --name --project $PROJECT_ID= |
+| Nagios directory | =/usr/share/check-mk-agent= |
+                                     
                      
                      
 
-** Check Service Status 
+** Controller services 
 | Name                                         | Command                                              |
 |----------------------------------------------+------------------------------------------------------|
-|                  |     =systemctl status ovs-vswitchd=                               |
+|   HTTPD                |     =systemctl status httpd=                               |
+|   MEMCACHED                |     =systemctl status memcached=                               |
+|   HAPROXY               |     =systemctl status haproxy=                               |
+|   KEEPALIVED               |     =systemctl status keepalived=                               |
+|   MARIADB               |     =systemctl status mariadb=                               |
+|   RABBITMQ               |     =systemctl status rabbitmq-server=                               |
+|   GLANCE               |     =systemctl status openstack-glance-api openstack-glance-registry=                               |
+|    NOVA              |     =systemctl status openstack-nova-api openstack-nova-consoleauth openstack-nova-conductor openstack-nova-scheduler openstack-nova-novncproxy=                                |
+|    NEUTRON              |     =systemctl status neutron-server=                               |
+|           |                 |
+|  | |
+
+** Network services 
+| Name                                         | Command                                              |
+|----------------------------------------------+------------------------------------------------------|
+|     NEUTRON             |     =systemctl status neutron-dhcp-agent neutron-l3-agent neutron-metadata-agent neutron-openvswitch-agent=                               |
 |                       |                                    |
 |           |                 |
 |  | |
 
+** Compute services 
+| Name                                         | Command                                              |
+|----------------------------------------------+------------------------------------------------------|
+|      NOVA            |     =systemctl status openstack-nova-compute openvswitch neutron-openvswitch-agent=                               |
+|  | |
 
+** Octavia services 
+| Name                                         | Command                                              |
+|----------------------------------------------+------------------------------------------------------|
+|     OCTAVIA             |     =systemctl status octavia-api octavia-worker octavia-health-manager  octavia-housekeeping=                               |
+|                       |                                    |
+|           |                 |
+|  | |
+
+** RabbitMQ 
+| Name                                         | Command                                              |
+|----------------------------------------------+------------------------------------------------------|
+|                  |     =rabbitmq-diagnostics status=                               |
+|                       |  =rabbitmqctl cluster_status=                                  |
+|           | =rabbitmqctl list_queues -p openstack | sort -k 2 -g=                |
+|  | =rabbitmqctl list_queues -p openstack name consumers messages= |
+| More Info | [[https://www.rabbitmq.com/clustering.html][Clustering Guide]]|
+
+
+
+** CEPH services 
+| Name                                         | Command                                              |
+|----------------------------------------------+------------------------------------------------------|
+|  Check Version                |     =ceph tell mon.* version=                               |
+|  Check Health Status                     |   =ceph health detail=                                 |
+|           | =ceph osd df=                |
+|  | =ceph osd pool ls detail= |
+| | =ceph osd pool get rbd all= |
+
+
+** OpenStack Port
+| Name                      | Comment                                                                   |
+|---------------------------+---------------------------------------------------------------------------|
+|  placement       | =8778= |
+|  neutron        | =9696= |
+|  nova | =8774= |
+|  glance | =9292= |
+| keystone | =5000= |
+| nova-api port to retrive metadata | =8775= |
+|      
+
+** OpenStack metadata curl requests
+| Name| Query |
+|---------------------------+---------------------------------------------------------------------------|
+| retrive metadata | =curl http://169.254.169.254/openstack/latest/meta_data.json= |
+| retirve userdata | =curl 169.254.169.254/1.0/user-data= | 
+| How OpenStack handels metadata | [[https://leftasexercise.com/2020/03/30/openstack-neutron-handling-instance-metadata/][ More on OpenStack Metadata]]| |
+** Log & Conf Files
+| Name                      | Comment                                                                   |
+|---------------------------+---------------------------------------------------------------------------|
+|              | =/=                                                        |
+|          | ==                                                    |
+|  | ==                                            |
+|                        |                               |
 ** Nova
 | Name                         | Command                                                                                   |
 |------------------------------+-------------------------------------------------------------------------------------------|
@@ -90,7 +181,9 @@
 | Create VM from CLI     | =openstack server create --flavor 10  --image $IMAGE_ID --key-name $INSTANCE_ID --security-group $SECGRP_ID  --nic net-id=$NETWORK_ID $INSTANCE_ID=
                                                 |
 | Get Instance info                 | =openstack server show $INSTANCE_ID=                                                   |
-|    | ==                                                          |
+| Migrate Instance Live on Specific hypervisor   | =openstack server migrate $UUID --live Hypervisor-moon=                                                          |
+| Migrate Instance Live  | =openstack server migrate $UUID --live-migration=                                                          |
+| Nova Migration article | [[https://cloud.garr.it/support/kb/openstack/manual_VM_host_migration/#some-useful-commands][ VM Migration some-useful-commands]]|
 
 ** Octavia LoadBalancer
 | Name                         | Command                                                                                   |
@@ -111,9 +204,19 @@
 | List LB pool | =openstack loadbalancer pool  list= |
 | List members in pool | =openstack loadbalancer member list POOL_ID= |
 | LB failover          | =openstack loadbalancer failover $LB_ID= |
+| LB Delete | =openstack loadbalancer delete --cascade $LB_ID= |
 | Get member Details.  | =openstack loadbalancer member show $POOL_ID $MEMBER_ID= |
 | Check all Amphorae on services project | =openstack server list --all-projects --project services -c "Availability Zone" -c ID -c Name -c Host -c "Power State"  --long= |
+| Test port Connection from Amphora namespace | =ip netns exec amphora-haproxy curl -v telnet://IP:443= |
 | Octavia Cookbook | [[https://docs.openstack.org/octavia/queens/user/guides/basic-cookbook.html][OpenStack official LB Cookbook]] |
+| How to fetch the client IP address at the backend | [[https://wiki.cisco.com/display/DCIT/How+to+fetch+the+client+IP+address+at+the+backend][Fetch the client IP address at the backend]] |
+| insert_headers | =openstack loadbalancer listener set --insert-headers X-Forwarded-For true= |
+| LB statistics | =openstack loadbalancer stats show $LB_ID= |
+| LB Listener statistics | =openstack loadbalancer listener stats show $Listener_ID= |
+| List LB flavors | =openstack loadbalancer flavor list= |
+| Create LB with specific flavor | =openstack loadbalancer create --name lb-flavor-test-1 --flavor Octavia_4vCPUx4GB --vip-network-id e33324cc-69d1-4b61-b4b5-9264f7ba0d92= |
+| Octavia Features | [[https://docs.openstack.org/octavia/latest/user/feature-classification/index.html][Octavia Load Balancer Features ]]|
+
  
 
 
@@ -146,12 +249,24 @@
 ** Neutron
 | Name                         | Command                                                                                   |
 |------------------------------+-------------------------------------------------------------------------------------------|
+| Check if IP belong to OpenStack DC| =openstack port list | grep $IP_ADDRESS= |
+| Create VIP Port | =openstack port create --project $PROJECT_ID --network $NW_ID --security-group $SEC_ID $VIP_NAME= |
+| Port set | =openstack port set $VM_PORT_ID allowed-address mac-address=$VIP_PORT_ID,ip-address=$VIP_IP= |
+| Check floating IP| =openstack floatingip list= |
+| disable port_security_enabled flag| =openstack port set --disable-port-security $PORT_ID= |
+| check port in specific project | =openstack port list --project $PROJECT_ID= |
 | List all Security Group                  | =openstack security group list=                                                                        |
 | Create security group e.g ssh  | =openstack security group create ssh=                                                        |
 | Add a rule to allow ssh and icmp in the ssh security group              | =openstack security group rule create --ingress --protocol tcp --dst-port 22 ssh=                                                      |
 | Add a rule to allow ssh and icmp in the ssh security group    | =openstack security group rule create --ingress --protocol tcp --protocol icmp ssh=
                                                 |
                                                           |  
+
+** Nova
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| Check system metrics of Instance | =nova diagnostics $INSTANCE_ID= |      
+
 ** Cinder
 | Name                         | Command                                                                                   |
 |------------------------------+-------------------------------------------------------------------------------------------|
@@ -162,6 +277,8 @@
 | delete volume snapshot    | =openstack volume snapshot delete $VOLUME_ID=                                      |
 | Find out snapshot of a volume    | =openstack volume snapshot list --volume $VOLUME_ID --all-project=    |
 | Force delete cinder volume   | =cinder force-delete $VOLUME_ID=                                      |
+| Remove volume from Instance | =openstack server remove volume $INSTANCE_ID $VOLUME_ID= |
+| Add volume to Instance | =openstack server add volume $INSTANCE_ID $VOLUME_ID= |
 | Troubleshooting cinder    | [[https://ask.openstack.org/en/question/66918/how-to-delete-volume-with-available-status-and-attached-to/][Troubleshooting Doc]]                     |
                                                
                                                                                                            
@@ -175,7 +292,8 @@
 | Editing Unit Files    | =systemctl edit nginx.service=                                      |
 | systemd file location   | =/etc/systemd/system/=    |
 | Reload systemd process   | =systemctl daemon-reload=                                      |
-|Shows services that failed to run| =systemctl --failed= |
+| Shows services that failed to run| =systemctl --failed= |
+| see loaded but inactive units| =systemctl --failed --all= |
 | Systemd cheatsheet    | [[https://access.redhat.com/sites/default/files/attachments/12052018_systemd_6.pdf][Official CheatSheet]]                     |
 
 * journalctl
@@ -187,10 +305,11 @@
 | Display all messages generated by process ID   | =journalctl _PID=1115=                                             |
 | Display all messages generated by current user ID (id -u):    | =journalctl _UID=$(id -u)=                                      |
 | Display all of the entries that involve the executable in question:   | =journalctl /bin/bash=    |
-| Displays all messages between two dates:   | =journalctl --since "2020-07-05 21:30:01" --until "2020-07-05 21:30:02"=                                      |
-| Printing the last 50 messages logged within the last hour:| =journalctl -n50 --since "1 hour ago"= |
+| Displays all messages between two dates:   | journalctl \--since \"2020-07-05 21:30:01\" \--until \"2021-07-05 21:30:02\"                                   |
+| Printing the last 50 messages logged within the last hour:| journalctl -n50 \--since \"1 hour ago\" |
+| Printing the last 50 messages logged within the last minutes:| journalctl -n50 \--since \"5 minutes ago\" |
 | json-pretty output| =journalctl -u telegraf  -f  -o json-pretty= |
-| parse json output| =journalctl -u telegraf  -f  -o json-pretty PIPE jq .MESSAGE= |
+| parse json output| =journalctl -u telegraf  -f  -o json-pretty | jq .MESSAGE= |
 | Filter logs based on priority| =journalctl -p 2= | 
 | Filter kernel messages | =journalctl -k= |
 | View logs using journalctl in verbose mode | =journalctl -o verbose= |
@@ -207,6 +326,20 @@
 | Capturing and Saving the packets whose size greater than N bytes.  | tcpdump -w enp0s3-26082018-2.pcap greater 1024 |
 | Capturing and Saving the packets whose size less than N bytes      | tcpdump -w enp0s3-26082018-3.pcap less 1024 |
 | Reading packets from the saved file             | tcpdump -r enp0s3-26082018.pcap |
+| Find the leaf switch | tcpdump -c 2 -i bond0 -nn \"ether[20:2]==0x2000\" | 
+| Find the leaf switch for eth0  | tcpdump -c 2 -i eth0 -nn \"ether[20:2]==0x2000\" | 
+| Capture outgoing port traffic | =tcpdump -enni tap-interface-id dst port 443= |
+| Capture outgoing src and port traffic | =tcpdump -enni tap-interface-id src 192.168.0.1 and dstport 443= |
+| DNS trace | =dig +trace google.com= |
+| DNS tcpdump | =tcpdump -enni  eth0 dst port 53= |
+
+** IP-NETNS
+
+| Name                         | Command                                                                                   |
+|------------------------------+-------------------------------------------------------------------------------------------|
+| List namespaces | =ip netns= |  
+| GET namespace PID | =ip netns pids= |    
+
 
                                                           
 * Virsh commands
@@ -216,15 +349,33 @@
 | List all Guests.   | =virsh list --all= |
 | Edit Guest         | =virsh edit GUEST_ID= |
 | check GUEST xml data | =virsh dumpxml GUEST_ID= |
+| Find the tap interface of VM | =virsh dumpxml GUEST_ID | grep -i tap= |
 | Get the CPU Pinning Settings for a Guest | =virsh vcpupin GUEST_ID= |
 | Discover CPU Scheduling Parameters | =virsh schedinfo GUEST_ID= |
-| More Info | [[https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-managing_guests_with_virsh][ RedHat Docs ]] And [[https://libvirt.org/sources/virshcmdref/Virsh_Command_Reference-0.8.7-1.pdf][ Virsh_Command_Reference ]]   |
+| stats of virtualized domains | =virt-top= |
+| check attached disk | =virsh domblklist GUEST_ID --details= |
+| Detach Disk | =virsh detach-disk GUEST_ID sdc --config --live= |
+| More Info | [[ https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/virtualization/chap-virtualization-managing_guests_with_virsh][ RedHat Docs ]] And [[ https://libvirt.org/sources/virshcmdref/Virsh_Command_Reference-0.8.7-1.pdf][ Virsh_Command_Reference ]]   |
+
+* MariDB commands
+| Name                                           | Command                                                                                   |
+|------------------------------------------------+-------------------------------------------------------------------------------------------|
+| assign privileges | =GRANT ALL PRIVILEGES ON *.* TO 'username'@'localhost' WITH GRANT OPTION;= |
+| show processlist   | =show processlist\G;" | egrep "db\:" | awk -F: '{ print $2 }' | sort | uniq -c= |
+| Check connected Threads | =show status like "%Threads_connected%";= |
+| MySQL Thread Connected status | =select user, count(user) from information_schema.processlist group by user ;= |
+| Check log Info | =show variables like 'log_warnings';= |
+| MariaDB Cheatsheet | [[https://devhints.io/mysql][ CheetSheet]] |
+
 
 
 * Monitoring and LoadTesting
 | Name                                           | Command                                                                                   |
 |------------------------------------------------+-------------------------------------------------------------------------------------------|
 | To create 100M size, enter | =fallocate -l 100M file.out= |
+| Stress Memory/CPU | =stress-ng --cpu 18 -m 18 --vm-bytes 17000M -t 36000= |
+| Stress Memory | =stress-ng --cpu 2 --malloc 1 --malloc-bytes 150%= |
+| Top Process.   | =ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu=   |
 
 * Trace Linux System Calls
 | Name                                           | Command                                                                                   |
@@ -232,5 +383,23 @@
 | To see which commands made the most system calls | =perf top -F 49 -e raw_syscalls:sys_enter --sort comm,dso --show-nr-samples= |
 | To see latencies longer than a specific duration | =perf trace --duration 200= |
 | system calls within a period of time | =perf trace -p $PID -s= |
-| trace-cmd | [[https://opensource.com/article/21/7/linux-kernel-trace-cmd?utm_campaign=intrel][ More Info on https://opensource.com/]]  |
+| trace-cmd | [[https://opensource.com/article/21/7/linux-kernel-trace-cmd?utm_campaign=intrel][ More Info on https://opensource.com/]]  
+
+* General Linux Commands
+| Name | Command |
+|-----------------+------------|
+| check cpu core | =lscpu -e= |
+| check Hardware details | =dmidecode -t system= |
+| Show HaProxy metrics| =echo "show stat" | nc -U /var/lib/haproxy/stats-1= |
+| What if nc command is not installed | =timeout 1 bash -c "</dev/tcp/IP_ADDRESS/80" && echo Port open. || echo Port closed= |
+| What if nc command is not installed, without timeout cmd | =bash -c "</dev/tcp/IP_ADDRESS/80" && echo Port open. || echo Port closed= |
+| Check remote SSL cert validity| =openssl s_client -showcerts -connect cloud-svldev-1-storage.cisco.com:443 < /dev/null|openssl x509 -noout -text 2>/dev/null | grep After= |
+| Check local SSL cert validity | =cat kubelet.crt  | openssl x509 -noout -enddate= |
+| netstat connections sorted according to their state | =netstat -ant | grep :$PORT | awk '{print $6}' | sort | uniq -c | sort -n= |
+| netstat check local connections | =netstat -anp | grep -c $(hostname -i):5672= |
+| Check iptables NAT rules | =iptables -L -v -n= |
+| Find Large Files in Linux | =du -a /dir/ | sort -n -r | head -n 20= |
+| silent curl | =curl -s https://openstack.com/v2/nova= |
+
+
 
